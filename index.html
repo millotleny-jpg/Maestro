@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Maestro - Bureau de Classe</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+  <!-- MODALE GÉNÉRIQUE INTÉGRÉE -->
+  <div id="custom-modal" class="modal-overlay">
+    <div class="modal-box">
+      <h3 id="custom-modal-title"><i class="fa-solid fa-circle-question"></i> Information</h3>
+      <p id="custom-modal-desc">Message...</p>
+      <input type="text" id="custom-modal-input" placeholder="Votre texte ici..." style="display:none;" onkeypress="if(event.key==='Enter') confirmCustomModal()">
+      <div class="modal-btn-group">
+        <button id="custom-modal-cancel" class="btn-neutral" onclick="closeCustomModal(false)">Annuler</button>
+        <button id="custom-modal-confirm" onclick="confirmCustomModal(true)">Confirmer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOUTON FLOTTANT POUR RÉ-AFFICHER LES CLASSES -->
+  <button id="restore-classes-btn" onclick="toggleHideClasses()" title="Afficher la barre des classes">
+    <i class="fa-solid fa-graduation-cap"></i>
+  </button>
+
+  <!-- ÉCRAN DU MODE TABLEAU / BLANC -->
+  <div id="whiteout-screen" onclick="toggleWhiteoutMode()"></div>
+
+  <!-- BARRE SUPÉRIEURE DES CLASSES -->
+  <div id="class-bar">
+    <div class="class-bar-left">
+      <span class="class-bar-title"><i class="fa-solid fa-graduation-cap"></i> Mes Classes :</span>
+      <div id="class-tabs" class="class-tabs"></div>
+      <button class="btn-subtle" onclick="openClassModal()"><i class="fa-solid fa-plus"></i> Ajouter</button>
+    </div>
+    <div class="class-bar-right">
+      <button class="btn-subtle" onclick="toggleHideClasses()" id="hide-classes-btn" title="Masquer la barre des classes">
+        <i class="fa-solid fa-eye-slash"></i> <span id="hide-classes-text">Masquer les classes</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ESPACE BUREAU -->
+  <div id="desktop">
+    <div id="drop-overlay">
+      <div class="drop-message"><i class="fa-solid fa-cloud-arrow-up"></i> Faites glisser une image pour la mettre en fond</div>
+    </div>
+  </div>
+
+  <!-- SIDEBAR GAUCHE : RÉGLAGES -->
+  <div id="settings-sidebar" class="sidebar sidebar-left">
+    <div class="sidebar-header">
+      <span><i class="fa-solid fa-gear"></i> Réglages</span>
+      <button class="close-sidebar-btn" onclick="toggleSettingsSidebar()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="sidebar-content">
+      <div class="sidebar-section">
+        <h4><i class="fa-solid fa-shield-halved"></i> Système de chances</h4>
+        <label>Chances de silence :</label>
+        <input type="number" id="setting-chances-count" value="3" min="1" max="10" onchange="updateChancesCount(this.value)" style="width:100%; padding:6px; margin-top:5px;">
+      </div>
+      <div class="sidebar-section">
+        <h4><i class="fa-solid fa-dice"></i> Tirage / Dés 3D</h4>
+        <label>Durée du lancement (sec) :</label>
+        <input type="number" id="setting-draw-duration" value="3" min="1" max="10" onchange="settings.drawDuration = parseInt(this.value); saveSettings();" style="width:100%; padding:6px; margin-top:5px;">
+      </div>
+      <div class="sidebar-section">
+        <h4><i class="fa-solid fa-quote-left"></i> Citation du jour</h4>
+        <label style="font-size:0.8rem; color:#64748b;">Votre citation :</label>
+        <textarea id="setting-quote-text" rows="3" onchange="updateCustomQuote()" style="width:100%; padding:6px; margin-top:3px; margin-bottom:8px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.85rem;"></textarea>
+        <label style="font-size:0.8rem; color:#64748b;">Auteur :</label>
+        <input type="text" id="setting-quote-author" onchange="updateCustomQuote()" style="width:100%; padding:6px; margin-top:3px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.85rem;">
+      </div>
+      <div class="sidebar-section">
+        <h4><i class="fa-solid fa-volume-high"></i> Sonnerie Minuteur</h4>
+        <button onclick="playDingDong()" style="width:100%; margin-top:5px;"><i class="fa-solid fa-bell"></i> Tester la sonnerie</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIDEBAR DROITE : FONDS D'ÉCRAN -->
+  <div id="bg-sidebar" class="sidebar sidebar-right">
+    <div class="sidebar-header">
+      <span><i class="fa-solid fa-palette"></i> Galerie de Fonds</span>
+      <button class="close-sidebar-btn" onclick="toggleBgSidebar()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="sidebar-content">
+      <div class="sidebar-section">
+        <h4><i class="fa-solid fa-file-image"></i> Image locale</h4>
+        <label class="file-upload-btn">
+          <input type="file" id="bg-file-input" accept="image/*" onchange="handleFileUpload(event)">
+          <i class="fa-solid fa-upload"></i> Importer un fichier
+        </label>
+      </div>
+      <div class="sidebar-section">
+        <h4><i class="fa-solid fa-magnifying-glass"></i> Chercher un fond d'écran</h4>
+        <div class="search-box">
+          <input type="text" id="bg-search-input" placeholder="ex: bureau, nature..." onkeypress="if(event.key==='Enter') searchImages()">
+          <button onclick="searchImages()"><i class="fa-solid fa-magnifying-glass"></i></button>
+        </div>
+        <div id="search-results" class="bg-grid"></div>
+      </div>
+      <div class="sidebar-section">
+        <h4><i class="fa-solid fa-images"></i> Fonds d'écrans prédéfinis</h4>
+        <div id="default-bg-grid" class="bg-grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BARRE DES TÂCHES -->
+  <div id="taskbar">
+    <div class="taskbar-left">
+      <button class="taskbar-item btn-sidebar" onclick="toggleSettingsSidebar()"><i class="fa-solid fa-gear"></i> Réglages</button>
+      <span class="app-logo"><i class="fa-solid fa-chalkboard-user"></i> Maestro</span>
+      
+      <div class="taskbar-slider-container">
+        <div class="taskbar-group">
+          <button class="taskbar-item" onclick="createWindow('timer')"><i class="fa-solid fa-hourglass-half"></i> Minuteur</button>
+          <button class="taskbar-item" onclick="createWindow('chrono')"><i class="fa-solid fa-stopwatch"></i> Chrono</button>
+          <button class="taskbar-item" onclick="createWindow('notes')"><i class="fa-solid fa-pen-to-square"></i> Texte</button>
+          <button class="taskbar-item" onclick="createWindow('draw')"><i class="fa-solid fa-paintbrush"></i> Dessin</button>
+          <button class="taskbar-item" onclick="setupWhiteoutKey()"><i class="fa-solid fa-eye-slash"></i> Mode Tableau</button>
+          <button class="taskbar-item" onclick="createWindow('randomizer')"><i class="fa-solid fa-dice"></i> Élève au sort</button>
+          <button class="taskbar-item" onclick="createWindow('groups')"><i class="fa-solid fa-people-group"></i> Groupes</button>
+          <button class="taskbar-item" onclick="createWindow('dice')"><i class="fa-solid fa-dice-three"></i> Dé / Pièce</button>
+          <button class="taskbar-item" onclick="createWindow('silence')"><i class="fa-solid fa-shield-halved"></i> Chances</button>
+          <button class="taskbar-item" onclick="createWindow('quotes')"><i class="fa-solid fa-quote-left"></i> Citation</button>
+          <button class="taskbar-item" onclick="createWindow('traffic')"><i class="fa-solid fa-traffic-light"></i> Feu de signal</button>
+          <button class="taskbar-item" onclick="createWindow('scoreboard')"><i class="fa-solid fa-trophy"></i> Scores</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="taskbar-right">
+      <button class="taskbar-item btn-sidebar" onclick="toggleBgSidebar()"><i class="fa-solid fa-palette"></i> Fonds</button>
+      <span id="live-clock">00:00:00</span>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
