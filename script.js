@@ -1338,8 +1338,14 @@ function setColsFromSec(id, totalSec) {
 }
 
 function adjustTimerUnit(id, unit, delta) {
-  pauseTimer(id);
-  let totalSec = getTimerSecFromCols(id);
+  const timer = timerData[id];
+  const wasRunning = timer?.state === 'running';
+  const wasPaused = timer?.state === 'paused';
+  const previousTotal = wasRunning && Number.isFinite(timer.deadlineAt)
+    ? Math.max(0, Math.ceil((timer.deadlineAt - Date.now()) / 1000))
+    : getTimerSecFromCols(id);
+  if (wasRunning && timer.interval) clearInterval(timer.interval);
+  let totalSec = previousTotal;
   let m = Math.floor(totalSec / 60);
   let s = totalSec % 60;
   let m10 = Math.floor(m / 10);
@@ -1352,10 +1358,16 @@ function adjustTimerUnit(id, unit, delta) {
   if (unit === 's10') s10 = Math.max(0, Math.min(5, s10 + delta));
   if (unit === 's1') s1 = Math.max(0, Math.min(9, s1 + delta));
 
-  const newTotal = ((m10 * 10 + m1) * 60) + (s10 * 10 + s1);
-  timerData[id] = { totalSec: newTotal, initialSec: newTotal, interval: null, state: 'idle' };
+  let newTotal = ((m10 * 10 + m1) * 60) + (s10 * 10 + s1);
+  if (wasRunning && newTotal === 0) newTotal = 1;
+  const initialSec = wasRunning
+    ? Math.max(newTotal, (timer.initialSec || previousTotal) + (newTotal - previousTotal))
+    : newTotal;
+  timerData[id] = { totalSec: newTotal, initialSec, interval: null, deadlineAt: null, state: wasRunning || wasPaused ? 'paused' : 'idle' };
   setColsFromSec(id, newTotal);
   updateTimerDisplay(id);
+  if (wasRunning) startTimer(id);
+  else updateTimerButtonsState(id, wasPaused ? 'paused' : 'idle');
 }
 
 function startTimer(id) {
@@ -1373,12 +1385,11 @@ function startTimer(id) {
   timerData[id].state = 'running';
   updateTimerButtonsState(id, 'running');
 
-  const startTime = Date.now();
   const startSec = timerData[id].totalSec;
+  timerData[id].deadlineAt = Date.now() + startSec * 1000;
 
   timerData[id].interval = setInterval(() => {
-    const elapsedSec = Math.floor((Date.now() - startTime) / 1000);
-    const currentSec = Math.max(0, startSec - elapsedSec);
+    const currentSec = Math.max(0, Math.ceil((timerData[id].deadlineAt - Date.now()) / 1000));
     timerData[id].totalSec = currentSec;
     setColsFromSec(id, currentSec);
     updateTimerDisplay(id);
@@ -1386,6 +1397,7 @@ function startTimer(id) {
     if (currentSec <= 0) {
       clearInterval(timerData[id].interval);
       timerData[id].interval = null;
+      timerData[id].deadlineAt = null;
       timerData[id].state = 'ended';
       updateTimerButtonsState(id, 'ended');
       playDingDong();
@@ -1398,6 +1410,12 @@ function pauseTimer(id) {
   if (timerData[id] && timerData[id].state === 'running') {
     clearInterval(timerData[id].interval);
     timerData[id].interval = null;
+    if (Number.isFinite(timerData[id].deadlineAt)) {
+      timerData[id].totalSec = Math.max(0, Math.ceil((timerData[id].deadlineAt - Date.now()) / 1000));
+      setColsFromSec(id, timerData[id].totalSec);
+      updateTimerDisplay(id);
+    }
+    timerData[id].deadlineAt = null;
     timerData[id].state = 'paused';
     updateTimerButtonsState(id, 'paused');
   }
@@ -2027,21 +2045,3 @@ function startChrono(id) {
   chronos[id] = setInterval(() => {
     const centis = baseCentis + Math.floor((performance.now() - startedAt) / 10);
     document.getElementById(`disp-${id}`).dataset.time = centis;
-    const m = String(Math.floor(centis / 6000)).padStart(2, '0');
-    const s = String(Math.floor((centis % 6000) / 100)).padStart(2, '0');
-    const c = String(centis % 100).padStart(2, '0');
-    document.getElementById(`disp-${id}`).textContent = `${m}:${s}.${c}`;
-  }, 50);
-}
-function pauseChrono(id) { clearInterval(chronos[id]); chronos[id] = null; }
-function resetChrono(id) {
-  pauseChrono(id);
-  document.getElementById(`disp-${id}`).dataset.time = 0;
-  document.getElementById(`disp-${id}`).textContent = "00:00.00";
-}
-
-function setTrafficLight(element, color) {
-  const container = element.parentElement;
-  container.querySelectorAll('.traffic-light').forEach(light => light.classList.remove('active'));
-  element.classList.add('active');
-}
