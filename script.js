@@ -2045,3 +2045,21 @@ function startChrono(id) {
   chronos[id] = setInterval(() => {
     const centis = baseCentis + Math.floor((performance.now() - startedAt) / 10);
     document.getElementById(`disp-${id}`).dataset.time = centis;
+    const m = String(Math.floor(centis / 6000)).padStart(2, '0');
+    const s = String(Math.floor((centis % 6000) / 100)).padStart(2, '0');
+    const c = String(centis % 100).padStart(2, '0');
+    document.getElementById(`disp-${id}`).textContent = `${m}:${s}.${c}`;
+  }, 50);
+}
+function pauseChrono(id) { clearInterval(chronos[id]); chronos[id] = null; }
+function resetChrono(id) {
+  pauseChrono(id);
+  document.getElementById(`disp-${id}`).dataset.time = 0;
+  document.getElementById(`disp-${id}`).textContent = "00:00.00";
+}
+
+function setTrafficLight(element, color) {
+  const container = element.parentElement;
+  container.querySelectorAll('.traffic-light').forEach(light => light.classList.remove('active'));
+  element.classList.add('active');
+}
