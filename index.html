@@ -3,12 +3,40 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Maestro - Bureau de Classe</title>
+  <title>Maestro - Espace pédagogique</title>
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="icon" type="image/png" href="Maestro.png">
 </head>
 <body>
+
+  <section id="home-screen" aria-label="Accueil Maestro">
+    <div class="home-card">
+      <img class="home-logo" src="Maestro.png" alt="Logo de Maestro : un personnage coiffé d’un chapeau de diplômé">
+      <h1>Maestro</h1>
+      <p>Outils pédagogiques pour l’école, le collège et le lycée.</p>
+      <button class="home-open-btn" type="button" onclick="openMaestroDesktop()">Entrer dans Maestro <span aria-hidden="true">→</span></button>
+      <button class="home-attendance-btn" type="button" onclick="openAttendanceDashboard()"><i class="fa-solid fa-chart-column" aria-hidden="true"></i> Tableau des présences</button>
+    </div>
+    <small class="home-credit">By Ruben</small>
+  </section>
+
+  <section id="attendance-screen" class="attendance-screen" aria-label="Tableau des présences" hidden>
+    <header class="attendance-screen-header">
+      <button type="button" class="attendance-back-btn" onclick="showMaestroHome()"><i class="fa-solid fa-arrow-left"></i> Accueil</button>
+      <div><span class="attendance-eyebrow">Maestro · Suivi des classes</span><h1><i class="fa-solid fa-chart-column"></i> Tableau des présences</h1></div>
+    </header>
+    <p class="attendance-screen-intro">Retrouve les appels validés et l’évolution des absences par jour, semaine ou mois.</p>
+    <div class="attendance-report attendance-screen-report">
+      <div class="attendance-report-filters">
+        <label>Période<select id="attendance-period-home-attendance" onchange="renderAttendanceReport('home-attendance')"><option value="day">Jour · 14 derniers jours</option><option value="week">Semaine · 12 dernières</option><option value="month">Mois · 12 derniers</option></select></label>
+        <label>Classe<select id="attendance-class-home-attendance" onchange="renderAttendanceReport('home-attendance')"></select></label>
+        <button type="button" class="attendance-export" onclick="exportAttendanceReport('home-attendance')"><i class="fa-solid fa-download"></i> Exporter en CSV</button>
+      </div>
+      <div class="attendance-report-kpis" id="attendance-kpis-home-attendance"></div>
+      <div class="attendance-chart" id="attendance-chart-home-attendance"></div>
+      <section class="attendance-detail-panel" id="attendance-detail-home-attendance" aria-live="polite" aria-label="Détail de la période sélectionnée"></section>
+      <div class="attendance-report-empty" id="attendance-report-empty-home-attendance" hidden>Aucun appel validé pour cette période. Valide un appel pour commencer l’historique.</div>
+    </div>
+  </section>
 
   <!-- MODALE GÉNÉRIQUE INTÉGRÉE -->
   <div id="custom-modal" class="modal-overlay">
@@ -64,6 +92,15 @@
         <label>Chances de silence :</label>
         <input type="number" id="setting-chances-count" value="3" min="1" max="10" onchange="updateChancesCount(this.value)" style="width:100%; padding:6px; margin-top:5px;">
       </div>
+      <div class="sidebar-section backup-section">
+        <h4><i class="fa-solid fa-floppy-disk"></i> Sauvegarde</h4>
+        <p class="backup-help">Tes classes et réglages restent dans ce navigateur. Exporte régulièrement une copie.</p>
+        <button type="button" onclick="exportSettingsBackup()"><i class="fa-solid fa-download"></i> Exporter mes données</button>
+        <label class="file-upload-btn backup-import-label">
+          <input type="file" id="import-settings-input" accept=".json,application/json" onchange="importSettingsBackup(event)">
+          <i class="fa-solid fa-upload"></i> Restaurer une sauvegarde
+        </label>
+      </div>
       <div class="sidebar-section">
         <h4><i class="fa-solid fa-dice"></i> Tirage / Dés 3D</h4>
         <label>Durée du lancement (sec) :</label>
@@ -72,13 +109,20 @@
       <div class="sidebar-section">
         <h4><i class="fa-solid fa-quote-left"></i> Citation du jour</h4>
         <label style="font-size:0.8rem; color:#64748b;">Votre citation :</label>
-        <textarea id="setting-quote-text" rows="3" onchange="updateCustomQuote()" style="width:100%; padding:6px; margin-top:3px; margin-bottom:8px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.85rem;"></textarea>
+        <textarea id="setting-quote-text" rows="3" onchange="updateCustomQuote()" style="width:100%; padding:6px; margin-top:3px; margin-bottom:8px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.85rem; resize:none;"></textarea>
         <label style="font-size:0.8rem; color:#64748b;">Auteur :</label>
         <input type="text" id="setting-quote-author" onchange="updateCustomQuote()" style="width:100%; padding:6px; margin-top:3px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.85rem;">
       </div>
       <div class="sidebar-section">
         <h4><i class="fa-solid fa-volume-high"></i> Sonnerie Minuteur</h4>
         <button onclick="playDingDong()" style="width:100%; margin-top:5px;"><i class="fa-solid fa-bell"></i> Tester la sonnerie</button>
+      </div>
+      <div class="sidebar-section">
+        <h4><i class="fa-solid fa-wand-magic-sparkles"></i> Actions rapides</h4>
+        <button type="button" onclick="toggleWhiteoutMode()"><i class="fa-solid fa-eye-slash"></i> Mode tableau</button>
+        <button type="button" onclick="setupWhiteoutKey()"><i class="fa-solid fa-keyboard"></i> Configurer le raccourci</button>
+        <button type="button" onclick="closeAllWindows()"><i class="fa-solid fa-window-close"></i> Fermer les fenêtres</button>
+        <button type="button" onclick="toggleFullscreen()"><i class="fa-solid fa-expand"></i> Plein écran</button>
       </div>
     </div>
   </div>
@@ -103,6 +147,7 @@
           <input type="text" id="bg-search-input" placeholder="ex: bureau, nature..." onkeypress="if(event.key==='Enter') searchImages()">
           <button onclick="searchImages()"><i class="fa-solid fa-magnifying-glass"></i></button>
         </div>
+        <p class="search-help">Recherche sur Wikimedia Commons (Internet requis). Les fonds unis restent disponibles hors ligne.</p>
         <div id="search-results" class="bg-grid"></div>
       </div>
       <div class="sidebar-section">
@@ -116,23 +161,34 @@
   <div id="taskbar">
     <div class="taskbar-left">
       <button class="taskbar-item btn-sidebar" onclick="toggleSettingsSidebar()"><i class="fa-solid fa-gear"></i> Réglages</button>
+      <button class="taskbar-item" onclick="showMaestroHome()"><i class="fa-solid fa-house"></i> Accueil</button>
       <span class="app-logo"><i class="fa-solid fa-chalkboard-user"></i> Maestro</span>
-      
-      <div class="taskbar-slider-container">
-        <div class="taskbar-group">
-          <button class="taskbar-item" onclick="createWindow('timer')"><i class="fa-solid fa-hourglass-half"></i> Minuteur</button>
-          <button class="taskbar-item" onclick="createWindow('chrono')"><i class="fa-solid fa-stopwatch"></i> Chrono</button>
-          <button class="taskbar-item" onclick="createWindow('notes')"><i class="fa-solid fa-pen-to-square"></i> Texte</button>
-          <button class="taskbar-item" onclick="createWindow('draw')"><i class="fa-solid fa-paintbrush"></i> Dessin</button>
-          <button class="taskbar-item" onclick="setupWhiteoutKey()"><i class="fa-solid fa-eye-slash"></i> Mode Tableau</button>
-          <button class="taskbar-item" onclick="createWindow('randomizer')"><i class="fa-solid fa-dice"></i> Élève au sort</button>
-          <button class="taskbar-item" onclick="createWindow('groups')"><i class="fa-solid fa-people-group"></i> Groupes</button>
-          <button class="taskbar-item" onclick="createWindow('dice')"><i class="fa-solid fa-dice-three"></i> Dé / Pièce</button>
-          <button class="taskbar-item" onclick="createWindow('silence')"><i class="fa-solid fa-shield-halved"></i> Chances</button>
-          <button class="taskbar-item" onclick="createWindow('quotes')"><i class="fa-solid fa-quote-left"></i> Citation</button>
-          <button class="taskbar-item" onclick="createWindow('traffic')"><i class="fa-solid fa-traffic-light"></i> Feu de signal</button>
-          <button class="taskbar-item" onclick="createWindow('scoreboard')"><i class="fa-solid fa-trophy"></i> Scores</button>
-        </div>
+      <div class="taskbar-favorites" id="taskbar-favorites" aria-label="Outils favoris épinglés"></div>
+      <div class="tool-launcher" id="tool-launcher">
+        <button class="taskbar-item tool-grid-toggle" id="tool-grid-toggle" type="button" aria-expanded="false" aria-controls="tool-grid-panel" onclick="toggleToolGrid()"><i class="fa-solid fa-grip"></i> <span class="tool-grid-button-label">Afficher la grille des boutons</span></button>
+        <section class="tool-grid-panel" id="tool-grid-panel" aria-label="Grille des fonctionnalités" hidden>
+          <div class="tool-grid-heading">
+            <div><strong>Outils pédagogiques</strong><span>Épingle une étoile pour garder jusqu’à 5 favoris dans la barre.</span></div>
+            <button type="button" class="tool-grid-close" onclick="toggleToolGrid(false)" aria-label="Fermer la grille">×</button>
+          </div>
+          <label class="tool-search"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><input id="tool-search-input" type="search" aria-label="Rechercher une fonction" placeholder="Rechercher une fonction…" autocomplete="off" oninput="filterToolGrid(this.value)"><kbd>Ctrl K</kbd></label>
+          <div class="tool-grid-items" id="tool-grid-items">
+            <button class="tool-grid-card" data-search="minuteur temps compte à rebours timer" onclick="launchTool('timer')"><i class="fa-solid fa-hourglass-half"></i><span>Minuteur</span><small>Gérer le temps d’une activité</small></button>
+            <button class="tool-grid-card" data-search="chronomètre chrono durée" onclick="launchTool('chrono')"><i class="fa-solid fa-stopwatch"></i><span>Chronomètre</span><small>Mesurer une durée</small></button>
+            <button class="tool-grid-card" data-search="texte notes rédaction" onclick="launchTool('notes')"><i class="fa-solid fa-pen-to-square"></i><span>Notes</span><small>Préparer ou noter une idée</small></button>
+            <button class="tool-grid-card" data-search="dessin ardoise tableau blanc" onclick="launchTool('draw')"><i class="fa-solid fa-paintbrush"></i><span>Ardoise</span><small>Écrire et dessiner librement</small></button>
+            <button class="tool-grid-card" data-search="élève hasard tirage au sort prénom" onclick="launchTool('randomizer')"><i class="fa-solid fa-dice"></i><span>Élève au sort</span><small>Choisir un élève au hasard</small></button>
+            <button class="tool-grid-card" data-search="groupes équipes répartition" onclick="launchTool('groups')"><i class="fa-solid fa-people-group"></i><span>Groupes</span><small>Répartir les élèves en équipes</small></button>
+            <button class="tool-grid-card" data-search="dé pièce pile face hasard" onclick="launchTool('dice')"><i class="fa-solid fa-dice-three"></i><span>Dé et pièce</span><small>Faire un tirage rapide</small></button>
+            <button class="tool-grid-card" data-search="chances silence comportement" onclick="launchTool('silence')"><i class="fa-solid fa-shield-halved"></i><span>Chances</span><small>Suivre les chances de la classe</small></button>
+            <button class="tool-grid-card" data-search="citation motivation" onclick="launchTool('quotes')"><i class="fa-solid fa-quote-left"></i><span>Citation</span><small>Afficher la citation choisie</small></button>
+            <button class="tool-grid-card" data-search="feu signal couleur comportement" onclick="launchTool('traffic')"><i class="fa-solid fa-traffic-light"></i><span>Feu de signal</span><small>Indiquer une consigne visuelle</small></button>
+            <button class="tool-grid-card" data-search="score points équipes élèves" onclick="launchTool('scoreboard')"><i class="fa-solid fa-trophy"></i><span>Scores</span><small>Compter les points</small></button>
+            <button class="tool-grid-card" data-search="présences appel absent présent" onclick="launchTool('attendance')"><i class="fa-solid fa-user-check"></i><span>Présences</span><small>Faire l’appel de la classe</small></button>
+            <button class="tool-grid-card" data-search="liste tâches checklist matériel" onclick="launchTool('checklist')"><i class="fa-solid fa-list-check"></i><span>Liste de classe</span><small>Garder les tâches à portée de main</small></button>
+          </div>
+          <p class="tool-grid-empty" id="tool-grid-empty" hidden>Aucune fonction trouvée. Essaie un autre mot.</p>
+        </section>
       </div>
     </div>
     
@@ -145,3 +201,4 @@
   <script src="script.js"></script>
 </body>
 </html>
+
